@@ -82,7 +82,7 @@ Any GPU with **OpenGL 3.3** works (all NVIDIA, AMD and Intel GPUs from roughly 2
 
 ---
 
-## 3. Controls (from Phase 1)
+## 3. Controls
 
 | Input | Action |
 |---|---|
@@ -99,7 +99,7 @@ Any GPU with **OpenGL 3.3** works (all NVIDIA, AMD and Intel GPUs from roughly 2
 | Phase | Content | Status |
 |---|---|---|
 | 0 | Libraries, build, shared headers, stubs for every role | ✅ done |
-| 1 | Window, camera, shader, real frame loop, brute-force terrain | ⏳ next (A) |
+| 1 | Window, camera, shader, real frame loop, brute-force terrain (2.1 M triangles, 64 draw calls) | ✅ done |
 | 2 | Chunked LOD: 4 shared index buffers, distance LOD, budget | ⏳ (A) |
 | 3 | Skirts, shading, LOD colours, wireframe | ⏳ (A) |
 | n/a | Heightmap loading, normals, chunk boxes, ROAM | ⏳ (B) |

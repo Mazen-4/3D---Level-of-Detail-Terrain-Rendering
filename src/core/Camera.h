@@ -2,7 +2,10 @@
 // =============================================================================
 //  Camera  -  a "fly" camera:  WASD to move, hold RIGHT mouse button to look.
 //
-//  Owner: Role A.   (Implementation: Camera.cpp, written in Phase 1.)
+//  Owner: Role A.   (Implementation: Camera.cpp)
+//
+//  Controls:  hold RIGHT mouse + move = look,  W/A/S/D = move,  E/Q = up/down,
+//             Shift = 4x faster.
 //
 //  Other members only need these three things:
 //      camera.position          where the eye is (world units)
@@ -39,6 +42,9 @@ public:
     glm::mat4 viewProjection() const;   // projection() * view()
 
 private:
+    void updateLook(GLFWwindow* window);            // mouse  -> yaw / pitch
+    void updateMove(GLFWwindow* window, float dt);  // keys   -> position
+
     double lastMouseX = 0.0, lastMouseY = 0.0;
     bool   wasLooking = false;          // was the right mouse button held last frame?
 };

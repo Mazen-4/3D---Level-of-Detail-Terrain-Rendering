@@ -3,7 +3,7 @@
 //  Shader  -  loads a vertex + fragment shader from files and links them
 //             into one GPU program.  Also sets "uniforms" (values passed to the GPU).
 //
-//  Owner: Role A.   (Implementation: Shader.cpp, written in Phase 1.)
+//  Owner: Role A.   (Implementation: Shader.cpp)
 //
 //  Usage:
 //      Shader s;

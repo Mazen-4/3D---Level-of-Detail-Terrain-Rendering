@@ -19,7 +19,7 @@ Search for your tag in the code (`TODO [B]` or `TODO [C]`) to find your work.
 
 ## 2. How data flows through one frame
 
-This is the frame loop from the plan (Section 3). `main.cpp` will run exactly this from Phase 1:
+This is the frame loop from the plan (Section 3). `main.cpp` runs exactly this (simplified here):
 
 ```
 camera.update(window, dt);                                    // [A] WASD + mouse
@@ -27,9 +27,9 @@ if (!settings.freezeCulling) cullCamera = camera;             // [C] debug: free
 visible = grid.allChunks();                                   // [B] 64 chunks for a 1025 map
 if (settings.frustumCulling)   visible = frustum.cull(visible, cullCamera);   // [C]
 if (settings.occlusionCulling) visible = occlusion.cull(visible);             // [C]
-TerrainLOD& lod = (settings.mode == Mode::Chunked) ? chunked : roam;          // [A]/[B]
-lod.update(camera, settings, visible);                        // choose detail per chunk
-lod.draw(terrainShader, visible, stats);                      // draw + count triangles
+TerrainLOD* lod = &chunked;  if (settings.mode == Mode::Roam) lod = &roam;    // [A]/[B]
+lod->update(camera, settings, visible);                       // choose detail per chunk
+lod->draw(terrainShader, visible, stats);                     // draw + count triangles
 if (settings.occlusionCulling) occlusion.issueQueries(grid.allChunks(), cullCamera); // [C]
 debugDraw.draw(settings, grid, cullCamera, camera);           // [C]
 panel.draw(settings, stats);                                  // [C]
@@ -59,8 +59,31 @@ Compared to the plan's Section 3 listing:
 ## 3. What each role does next
 
 ### Role A: Engine & Chunked LOD (Mazen)
-Phase 1: `Camera.cpp`, `Shader.cpp`, terrain shaders, the real frame loop in `main.cpp`, brute-force drawing.
-Then Chunked LOD (Phase 2) and skirts + shading (Phase 3).
+Phase 1 is **done**: `Camera`, `Shader`, terrain shaders, the real frame loop in `main.cpp`,
+and brute-force drawing (every chunk at LOD 3 = ~2.1 M triangles).
+Next: Chunked LOD (Phase 2), then skirts + shading (Phase 3).
+
+**What you can use now:**
+
+| Need | Use |
+|---|---|
+| Camera matrices | `camera.view()`, `camera.projection()`, `camera.viewProjection()`, `camera.position` |
+| A shader | `Shader s; s.load(projectPath("shaders/x.vert"), projectPath("shaders/x.frag")); s.use(); s.setMat4("uViewProj", ...)` |
+| Terrain vertex format | `TerrainVertex` + `setTerrainVertexLayout()` in `src/lod/TerrainVertex.h` |
+
+**Terrain shader contract** (`shaders/terrain.vert/.frag`). `main.cpp` sets these before calling `lod->draw(...)`, so **ROAM gets them for free**:
+`uViewProj` (mat4), `uHeightScale` (float), `uSunDirection` (vec3). The shader is already active (`use()`d) when `draw()` is called.
+
+**How ROAM draws (for B):** make one VAO + one VBO in `build()`:
+```cpp
+glGenVertexArrays(1, &m_vao);  glGenBuffers(1, &m_vbo);
+glBindVertexArray(m_vao);      glBindBuffer(GL_ARRAY_BUFFER, m_vbo);
+glBufferData(GL_ARRAY_BUFFER, MAX_VERTICES * sizeof(TerrainVertex), nullptr, GL_DYNAMIC_DRAW);
+setTerrainVertexLayout();
+```
+then in `draw()` fill a `std::vector<TerrainVertex>` with 3 vertices per leaf triangle, upload with
+`glBufferSubData`, and call `glDrawArrays(GL_TRIANGLES, 0, count)`. Positions are world positions:
+use `grid.position(x, z)` and `grid.normal(x, z)`.
 
 ### Role B: Terrain Data & ROAM
 Your files: `src/terrain/Heightmap.*`, `src/terrain/TerrainGrid.*`, `src/lod/RoamLOD.*`, `assets/heightmaps/`.
@@ -76,7 +99,9 @@ Your files: `src/culling/*`, `src/ui/*`, `src/bench/*`, `shaders/lines.*`.
 Start with these. None of them need Phase 1:
 1. `Frustum`: plane extraction + positive-vertex box test. You can unit-test it on a hand-made matrix with GLM alone.
 2. `Panel`: the current panel is a **temporary minimal version**. Replace it with the full one (culling toggles, freeze, counters, benchmark buttons).
-3. `OcclusionCuller`, `DebugDraw` and `Benchmark` once Phase 1 (camera + shader) is merged.
+3. `OcclusionCuller`, `DebugDraw` and `Benchmark`. Phase 1 (camera + shader) is now in, so these are unblocked.
+   For `lines.vert/.frag` you can copy the structure of `shaders/terrain.vert` (one `uViewProj` uniform) and output a `uColour`.
+   Restore any GL state you change (colour mask, depth mask, polygon mode).
 
 ## 4. Git workflow (plan Section 6)
 
