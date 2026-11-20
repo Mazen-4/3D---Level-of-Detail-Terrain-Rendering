@@ -14,7 +14,7 @@ Everyone on the team should be able to answer these, not only Role A (plan Secti
 remaining chunk → draw them → draw the UI.
 
 **Longer:** see [ARCHITECTURE.md §3](ARCHITECTURE.md#3-one-frame-step-by-step). The loop is in
-[main.cpp](../src/main.cpp#L249) and each line is tagged with the role that owns it.
+[main.cpp](../src/main.cpp#L258) and each line is tagged with the role that owns it.
 
 ---
 
@@ -31,10 +31,10 @@ stored 6 times. In our code:
 
 | Step | Where |
 |---|---|
-| Create VAO + VBO, upload vertices | [`buildChunkMesh`](../src/lod/ChunkedLOD.cpp#L68) |
+| Create VAO + VBO, upload vertices | [`buildChunkMesh`](../src/lod/ChunkedLOD.cpp#L85) |
 | Tell OpenGL the vertex layout (attribute 0 = position, 1 = normal) | [`setTerrainVertexLayout`](../src/lod/TerrainVertex.cpp#L9) |
-| Create the index buffers | [`buildLodIndexBuffer`](../src/lod/ChunkedLOD.cpp#L118) |
-| Bind VAO + EBO and draw | [`draw`](../src/lod/ChunkedLOD.cpp#L210) |
+| Create the index buffers | [`buildLodIndexBuffer`](../src/lod/ChunkedLOD.cpp#L135) |
+| Bind VAO + EBO and draw | [`draw`](../src/lod/ChunkedLOD.cpp#L227) |
 
 ```cpp
 glBindVertexArray(mesh.vao);                        // this chunk's vertices
@@ -122,7 +122,7 @@ Our real chunks have 129×129 vertices, and the strides are 1, 2, 4, 8:
 | 1 | 4 | 32 | 2,048 | 256 | 2,304 |
 | 0 (coarsest) | 8 | 16 | 512 | 128 | 640 |
 
-Code: [`buildLodIndexBuffer`](../src/lod/ChunkedLOD.cpp#L118), strides in
+Code: [`buildLodIndexBuffer`](../src/lod/ChunkedLOD.cpp#L135), strides in
 [`LOD_STRIDE`](../src/lod/ChunkedLOD.cpp#L22).
 
 > **Why maps are 2ⁿ+1:** 128 = 2⁷ quads per chunk, so strides 1, 2, 4 and 8 all divide 128
@@ -154,11 +154,11 @@ distance <  4·D  → LOD 1  (blue)
 otherwise        → LOD 0  (purple)
 ```
 
-- **Distance** is from the camera to the **closest point of the chunk's bounding box**. We clamp the camera position into the box to get that point ([`distanceToBox`](../src/lod/ChunkedLOD.cpp#L179)). Using the closest point, not the centre, means a big chunk right under you is never treated as far away.
+- **Distance** is from the camera to the **closest point of the chunk's bounding box**. We clamp the camera position into the box to get that point ([`distanceToBox`](../src/lod/ChunkedLOD.cpp#L196)). Using the closest point, not the centre, means a big chunk right under you is never treated as far away.
 - **Max Triangles** budget: if the chosen LOD has more triangles than the slider allows, step down one level until it fits. LOD 0 is always allowed, so every chunk is still drawn.
 - **Enable LOD** off: every chunk gets LOD 3. That is our **brute-force baseline**, so there is no separate renderer for it.
 
-Code: [`chooseChunkLod`](../src/lod/ChunkedLOD.cpp#L186).
+Code: [`chooseChunkLod`](../src/lod/ChunkedLOD.cpp#L203).
 
 **Why far away can be coarse:** a far triangle covers only a few pixels on screen, so removing
 vertices there changes almost nothing you can see.
@@ -181,7 +181,7 @@ the sky shows through. A **skirt** is a vertical strip hanging down from every c
 
 **How we built them:**
 1. Each chunk's vertex buffer gets **4 × 129 extra vertices**: a copy of every edge vertex, moved down by
-   [`SKIRT_DEPTH`](../src/lod/ChunkedLOD.cpp#L29) = 20 units ([`buildChunkMesh`](../src/lod/ChunkedLOD.cpp#L68)).
+   [`SKIRT_DEPTH`](../src/lod/ChunkedLOD.cpp#L29) = 20 units ([`buildChunkMesh`](../src/lod/ChunkedLOD.cpp#L85)).
 2. Each LOD's index buffer adds a strip of triangles joining each edge vertex to its copy below,
    **with the same stride as that LOD**, so it lines up with that LOD's edge.
 
@@ -194,7 +194,7 @@ sky-coloured pixels: **328 without skirts, 0 with skirts.**
 
 **Why skirts are off when LOD is off:** all chunks are LOD 3 then, so edges match exactly and there
 are no cracks. Skipping them keeps the brute-force count exactly 64 × 32,768 = 2,097,152
-([`m_drawSkirts`](../src/lod/ChunkedLOD.cpp#L174)).
+([`m_drawSkirts`](../src/lod/ChunkedLOD.cpp#L191)).
 
 ---
 
@@ -242,7 +242,7 @@ Code: [`terrainColour`](../shaders/terrain.frag#L42).
 
 | View | How |
 |---|---|
-| **Wireframe** | `glPolygonMode(GL_FRONT_AND_BACK, GL_LINE)` in [`beginFrame`](../src/main.cpp#L162); the UI is always switched back to fill mode |
+| **Wireframe** | `glPolygonMode(GL_FRONT_AND_BACK, GL_LINE)` in [`beginFrame`](../src/main.cpp#L166); the UI is always switched back to fill mode |
 | **LOD colours** | `uDebugMode = 1`, and `ChunkedLOD::draw` sets `uLod` per chunk; the shader picks red/green/blue/purple |
 
 ---

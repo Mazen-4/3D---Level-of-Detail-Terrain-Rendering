@@ -35,14 +35,14 @@ parts working together. Links go straight to the code.
 
 ## 2. Start-up, step by step
 
-Everything happens in [`main()`](../src/main.cpp#L210):
+Everything happens in [`main()`](../src/main.cpp#L214):
 
 | Step | Code | What it does |
 |---|---|---|
 | 1 | [`createWindow()`](../src/main.cpp#L67) | Opens a window with an **OpenGL 3.3 Core** context and loads OpenGL functions with GLAD |
 | 2 | [`startImGui()`](../src/main.cpp#L98) | Connects Dear ImGui (the control panel library) to the window |
-| 3 | [`buildTerrain()`](../src/main.cpp#L114) | Loads the heightmap PNG (or the built-in test terrain) and builds the `TerrainGrid` |
-| 4 | [`placeCameraOverTerrain()`](../src/main.cpp#L125) | Puts the camera above the near edge, looking across the map |
+| 3 | [`loadHeightmap()`](../src/main.cpp#L113) + `grid.build(...)` | Loads the heightmap PNG (or the built-in test terrain) and builds the `TerrainGrid`. The heightmap stays in memory: when the **Height Scale** slider moves, `rebuildTerrain()` rebuilds the grid and both LOD methods |
+| 4 | [`placeCameraOverTerrain()`](../src/main.cpp#L129) | Puts the camera above the near edge, looking across the map |
 | 5 | `terrainShader.load(...)` | Compiles `shaders/terrain.vert` + `terrain.frag` |
 | 6 | `chunked.build(grid)`, `roam.build(grid)` | Each LOD method prepares its data (GPU buffers, variance trees) |
 | 7 | `occlusion.init(grid)`, `debugDraw.init()` | Culling and debug helpers create their GPU objects |
@@ -51,7 +51,7 @@ Everything happens in [`main()`](../src/main.cpp#L210):
 
 ## 3. One frame, step by step
 
-The [frame loop](../src/main.cpp#L249) is the plan's Section 3, line for line:
+The [frame loop](../src/main.cpp#L258) is the plan's Section 3, line for line:
 
 | # | Code | Owner | What it does |
 |---|---|---|---|
@@ -59,6 +59,7 @@ The [frame loop](../src/main.cpp#L249) is the plan's Section 3, line for line:
 | 2 | `beginFrame` | A | Viewport + aspect ratio (window may be resized), V-Sync, clear screen, wireframe on/off |
 | 3 | `camera.update(window, dt)` | A | WASD + mouse. Skipped while the mouse is over the UI panel |
 | 4 | `cullCamera = camera` | C | Unless **Freeze culling** is on: then culling keeps using the old camera, so you can fly out and look at it |
+| 4b | `rebuildTerrain(...)` | A | Only if the **Height Scale** slider moved: rebuild the grid and both LOD methods with the new heights |
 | 5 | `visible = grid.allChunks()` | B | Start with all 64 chunks |
 | 6 | `frustum.cull(...)` | C | Remove chunks outside the screen |
 | 7 | `occlusion.cull(...)` | C | Remove chunks that were hidden **last frame** |
@@ -129,7 +130,7 @@ if (settings.mode == Mode::Roam)
    Terrain vertices are stored in world space, so there is no model matrix.
 2. **Chunk index = `gz * chunksPerSide + gx`**, everywhere (grid, ChunkedLOD meshes, occlusion queries).
 3. **The terrain shader is already active when `lod->draw()` is called**, with all frame uniforms set
-   (see [`setTerrainUniforms`](../src/main.cpp#L179)). A LOD method only sets `uLod`.
+   (see [`setTerrainUniforms`](../src/main.cpp#L183)). A LOD method only sets `uLod`.
 4. **Restore OpenGL state you change.** If you turn off depth writes, colour writes or change the
    polygon mode, turn them back before returning. The next module expects the defaults:
    depth test on, depth and colour writes on, fill mode (unless wireframe), no VAO bound.
