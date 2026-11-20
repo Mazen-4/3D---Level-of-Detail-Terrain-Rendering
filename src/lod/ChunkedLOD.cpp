@@ -9,6 +9,7 @@
 
 #include <glad/glad.h>
 
+#include "core/Camera.h"
 #include "core/Settings.h"
 #include "core/Stats.h"
 #include "lod/TerrainVertex.h"
@@ -104,12 +105,44 @@ void ChunkedLOD::buildLodIndexBuffer(int lod) {
 // -----------------------------------------------------------------------------
 //  update: runs every frame
 // -----------------------------------------------------------------------------
-void ChunkedLOD::update(const Camera& /*camera*/, const Settings& /*settings*/,
+void ChunkedLOD::update(const Camera& camera, const Settings& settings,
                         const std::vector<Chunk*>& visible) {
-    // PHASE 1 = brute force: every chunk at full detail.
-    // Phase 2 replaces this with a distance-based choice (chooseChunkLod).
-    for (Chunk* chunk : visible)
-        chunk->lod = FINEST_LOD;
+    for (Chunk* chunk : visible) {
+        if (settings.lodEnabled)
+            chunk->lod = chooseChunkLod(*chunk, camera.position, settings);
+        else
+            chunk->lod = FINEST_LOD;   // "Enable LOD" off = brute force baseline
+    }
+}
+
+// Distance from a point to the CLOSEST point of a box (0 if the point is inside).
+// Clamping the point into the box gives that closest point.
+static float distanceToBox(const glm::vec3& point, const glm::vec3& boxMin, const glm::vec3& boxMax) {
+    glm::vec3 closest = glm::clamp(point, boxMin, boxMax);
+    return glm::length(point - closest);
+}
+
+// Picks the LOD of one chunk (plan Section 4.2, Fig. 2).
+// The thresholds double for each coarser level: 1 D, 2 D, 4 D.
+int ChunkedLOD::chooseChunkLod(const Chunk& chunk, const glm::vec3& cameraPosition,
+                               const Settings& settings) const {
+    // 1. Distance rule.  D grows with the "LOD Distance" slider,
+    //    so a bigger slider value keeps fine detail further away.
+    const float D        = settings.lodDistance * QUADS;
+    const float distance = distanceToBox(cameraPosition, chunk.boxMin, chunk.boxMax);
+
+    int lod;
+    if      (distance < 1.0f * D) lod = 3;
+    else if (distance < 2.0f * D) lod = 2;
+    else if (distance < 4.0f * D) lod = 1;
+    else                          lod = 0;
+
+    // 2. Budget rule ("Max Triangles" slider): step down while this level is too heavy.
+    //    LOD 0 is always allowed, so every chunk is still drawn.
+    while (lod > 0 && trianglesAtLod(lod) > settings.maxTrianglesPerChunk)
+        lod--;
+
+    return lod;
 }
 
 // -----------------------------------------------------------------------------

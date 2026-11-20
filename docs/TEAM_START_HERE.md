@@ -61,7 +61,10 @@ Compared to the plan's Section 3 listing:
 ### Role A: Engine & Chunked LOD (Mazen)
 Phase 1 is **done**: `Camera`, `Shader`, terrain shaders, the real frame loop in `main.cpp`,
 and brute-force drawing (every chunk at LOD 3 = ~2.1 M triangles).
-Next: Chunked LOD (Phase 2), then skirts + shading (Phase 3).
+Phase 2 is **done**: each chunk picks its LOD from its distance to the camera; the
+**Enable LOD**, **LOD Distance** and **Max Triangles** controls work. `chunk->lod` is now
+set every frame, so Role C can show it in debug views.
+Next: skirts + shading + LOD colours (Phase 3).
 
 **What you can use now:**
 

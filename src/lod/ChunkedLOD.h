@@ -15,11 +15,20 @@
 //      LOD 1            stride 4    32x32  quads    2,048 triangles
 //      LOD 0 (coarsest) stride 8    16x16  quads      512 triangles
 //
-//  Status: Phase 1 = brute force (every chunk at LOD 3).
-//          Phase 2 = LOD chosen by distance + triangle budget.
-//          Phase 3 = skirts against cracks.
+//  Choosing the LOD (plan Section 4.2, Fig. 2):
+//      D = lodDistance x chunkSize        (the "LOD Distance" slider)
+//      distance to chunk <  1 D   -> LOD 3
+//      distance to chunk <  2 D   -> LOD 2
+//      distance to chunk <  4 D   -> LOD 1
+//      otherwise                  -> LOD 0
+//  then, if that LOD has more triangles than "Max Triangles", step down a level.
+//
+//  Status: Phase 1 = buffers + brute force        (done)
+//          Phase 2 = LOD by distance + budget     (done)
+//          Phase 3 = skirts against cracks
 // =============================================================================
 #include <vector>
+#include <glm/glm.hpp>
 #include "lod/TerrainLOD.h"
 
 class ChunkedLOD : public TerrainLOD {
@@ -47,6 +56,10 @@ private:
 
     void buildChunkMesh(const TerrainGrid& grid, const Chunk& chunk, ChunkMesh& mesh);
     void buildLodIndexBuffer(int lod);
+
+    int chooseChunkLod(const Chunk& chunk, const glm::vec3& cameraPosition,
+                       const Settings& settings) const;
+    int trianglesAtLod(int lod) const { return m_lodBuffers[lod].indexCount / 3; }
 
     int                    m_chunksPerSide = 0;
     std::vector<ChunkMesh> m_meshes;                 // index = gz * chunksPerSide + gx
