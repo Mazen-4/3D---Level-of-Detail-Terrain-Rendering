@@ -80,6 +80,7 @@ bool Shader::load(const std::string& vertexPath, const std::string& fragmentPath
     return true;
 }
 
+// Every draw call after this uses this program, until another one is used.
 void Shader::use() const {
     glUseProgram(id);
 }

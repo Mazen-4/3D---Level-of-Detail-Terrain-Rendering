@@ -19,6 +19,7 @@ static const glm::vec3 WORLD_UP(0.0f, 1.0f, 0.0f);
 static const float MAX_PITCH_DEGREES = 89.0f;   // stop just before straight up/down (lookAt breaks at 90)
 static const float FAST_MULTIPLIER   = 4.0f;    // speed while Shift is held
 
+// Called once per frame: first turn (mouse), then move (keys).
 void Camera::update(GLFWwindow* window, float dt) {
     updateLook(window);
     updateMove(window, dt);

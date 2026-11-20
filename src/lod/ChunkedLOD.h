@@ -70,7 +70,9 @@ private:
 
     int chooseChunkLod(const Chunk& chunk, const glm::vec3& cameraPosition,
                        const Settings& settings) const;
-    int trianglesAtLod(int lod) const { return m_lodBuffers[lod].totalIndexCount / 3; }
+    // Terrain triangles of one LOD (32,768 / 8,192 / 2,048 / 512), the numbers in the
+    // plan's table.  The "Max Triangles" budget compares against these; skirts not included.
+    int trianglesAtLod(int lod) const { return m_lodBuffers[lod].terrainIndexCount / 3; }
 
     int                    m_chunksPerSide = 0;
     std::vector<ChunkMesh> m_meshes;                 // index = gz * chunksPerSide + gx

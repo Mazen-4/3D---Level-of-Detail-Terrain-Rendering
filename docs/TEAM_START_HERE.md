@@ -66,7 +66,10 @@ Phase 2 is **done**: each chunk picks its LOD from its distance to the camera; t
 set every frame, so Role C can show it in debug views.
 Phase 3 is **done**: skirts hide the cracks between LODs, and the shader has height/slope
 colours, a sun, fog, and the **LOD colours** debug view.
-Next: explanation docs (Phase 4).
+Phase 4 is **done**: [ARCHITECTURE.md](ARCHITECTURE.md), [ROLE_A_EXPLAINED.md](ROLE_A_EXPLAINED.md)
+and [CONTRIBUTING.md](CONTRIBUTING.md).
+Next for A: review B's and C's pull requests, fix bugs found in benchmarks, and write the report
+sections "Pipeline, Chunked LOD, rendering".
 
 **What you can use now:**
 
@@ -111,19 +114,17 @@ Start with these. None of them need Phase 1:
    For `lines.vert/.frag` you can copy the structure of `shaders/terrain.vert` (one `uViewProj` uniform) and output a `uColour`.
    Restore any GL state you change (colour mask, depth mask, polygon mode).
 
-## 4. Git workflow (plan Section 6)
+## 4. Git workflow and code style
 
-1. `git checkout main && git pull`
-2. `git checkout -b b/heightmap` (your role letter / feature name)
-3. Commit small steps. `main` must **always build and run**.
-4. Push and open a **pull request** to `main`. It is reviewed by one other member, rotating A→B→C→A.
-5. In the PR description, say **what changed** and **how to see it in the app**.
+Short version: branch `<role>/<feature>` from `main`, small commits, pull request into `main`,
+reviewed by the next person in the rotation A→B→C→A. The full steps, the PR checklist and the
+code style are in **[CONTRIBUTING.md](CONTRIBUTING.md)**.
 
-Don't commit `build/` or heightmaps over 20 MB (put those in `assets/heightmaps/large/`, which Git ignores, and share a link).
+## 5. All the docs
 
-## 5. Code style (so all of us can explain every line)
-
-- One idea per file. Short functions (< ~40 lines) named after what they do.
-- A plain-English comment above every function; point to the plan's figures ("see Fig. 5").
-- Named constants instead of magic numbers: `CHUNK_QUADS = 128`, `SKIRT_DEPTH = 20.0f`.
-- No templates, no inheritance (except `TerrainLOD`), no multithreading, no clever tricks.
+| Doc | Read it when |
+|---|---|
+| [TEAM_START_HERE.md](TEAM_START_HERE.md) (this page) | You are new, or want to know what to do next |
+| [ARCHITECTURE.md](ARCHITECTURE.md) | You want to understand how the whole program fits together |
+| [CONTRIBUTING.md](CONTRIBUTING.md) | You are about to commit, open a PR, or review one |
+| [ROLE_A_EXPLAINED.md](ROLE_A_EXPLAINED.md) | You need to explain the engine, Chunked LOD or shading (everyone must!) |
