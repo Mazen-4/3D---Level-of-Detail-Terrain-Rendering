@@ -65,6 +65,7 @@ private:
         int totalIndexCount    = 0;   // terrain + skirt indices
     };
 
+    void releaseGpuBuffers();   // frees old buffers, so build() can be called again
     void buildChunkMesh(const TerrainGrid& grid, const Chunk& chunk, ChunkMesh& mesh);
     void buildLodIndexBuffer(int lod);
 

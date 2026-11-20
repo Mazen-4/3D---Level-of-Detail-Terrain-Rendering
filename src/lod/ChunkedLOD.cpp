@@ -48,9 +48,11 @@ static unsigned int skirtVertexIndex(int edge, int i) {
 }
 
 // =============================================================================
-//  build: runs once at start-up
+//  build: runs at start-up, and again whenever the height scale changes
 // =============================================================================
 void ChunkedLOD::build(const TerrainGrid& grid) {
+    releaseGpuBuffers();   // nothing to free the first time
+
     m_chunksPerSide = grid.chunksPerSide();
     m_meshes.resize(m_chunksPerSide * m_chunksPerSide);
 
@@ -59,6 +61,21 @@ void ChunkedLOD::build(const TerrainGrid& grid) {
 
     for (int lod = 0; lod < LOD_COUNT; ++lod)
         buildLodIndexBuffer(lod);
+}
+
+// Deletes the GPU objects of a previous build().  (OpenGL ignores id 0, so this
+// is safe to call before anything was created.)
+void ChunkedLOD::releaseGpuBuffers() {
+    for (ChunkMesh& mesh : m_meshes) {
+        glDeleteVertexArrays(1, &mesh.vao);
+        glDeleteBuffers(1, &mesh.vbo);
+    }
+    m_meshes.clear();
+
+    for (LodIndexBuffer& buffer : m_lodBuffers) {
+        glDeleteBuffers(1, &buffer.ebo);
+        buffer = LodIndexBuffer();
+    }
 }
 
 // Fills the chunk's own GPU vertex buffer:

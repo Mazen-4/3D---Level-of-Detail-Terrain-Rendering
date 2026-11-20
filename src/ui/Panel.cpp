@@ -11,7 +11,7 @@
 #include <imgui.h>
 
 void Panel::draw(Settings& settings, const Stats& stats) {
-    ImGui::Begin("LOD Control");
+    ImGui::Begin("LOD Control", nullptr, ImGuiWindowFlags_AlwaysAutoResize);   // grows to fit its widgets
 
     ImGui::Text("FPS: %.0f   (%.2f ms)", stats.fps, stats.frameMs);
     ImGui::Text("Triangles: %d   Draw calls: %d", stats.triangles, stats.drawCalls);
@@ -27,11 +27,13 @@ void Panel::draw(Settings& settings, const Stats& stats) {
     ImGui::Checkbox("Enable LOD", &settings.lodEnabled);
     ImGui::SliderFloat("LOD Distance", &settings.lodDistance, 0.5f, 8.0f);
     ImGui::SliderInt("Max Triangles", &settings.maxTrianglesPerChunk, 512, 50000);
+    ImGui::SliderFloat("Height Scale", &settings.heightScale, 20.0f, 600.0f);   // main.cpp rebuilds the terrain
     ImGui::Checkbox("Wireframe", &settings.wireframe);
     ImGui::Checkbox("LOD colours", &settings.lodColours);
     ImGui::Checkbox("V-Sync", &settings.vsync);
 
-    // TODO [C]: Frustum / Occlusion culling toggles, freeze culling,
+    // TODO [C]: keep the controls above (A and B test with them), and add:
+    //           Frustum / Occlusion culling toggles, freeze culling,
     //           culled + occluded counters, lod update time, benchmark buttons.
 
     ImGui::End();

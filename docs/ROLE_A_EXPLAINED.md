@@ -255,6 +255,17 @@ Code: [`terrainColour`](../shaders/terrain.frag#L42).
 | Chunked LOD, default view and sliders | 641,536 (10 chunks at LOD 3, 28 at LOD 2, 26 at LOD 1) | 64 |
 | Max Triangles = 2,048 | 147,456 (every chunk at LOD 1, skirts included) | 64 |
 
+**Speed (preliminary: default camera, V-Sync off, average of 300 frames, no culling yet):**
+
+| Map | Brute force | Chunked LOD | Speed-up |
+|---|---|---|---|
+| 1025 × 1025 (64 chunks) | 2.10 M triangles · 0.67 ms · ~1,500 FPS | 0.64 M · 0.30 ms · ~3,360 FPS | 2.2× |
+| 2049 × 2049 (256 chunks) | 8.39 M triangles · 2.13 ms · ~470 FPS | 0.92 M · 0.41 ms · ~2,460 FPS | 5.2× |
+
+- The **bigger the map, the bigger the win**: brute force grows with the map area, while Chunked LOD mostly grows with what is near the camera.
+- Chunked LOD's **CPU cost is ~0.001 ms per frame** (`lod.update`): just a distance and a few comparisons per chunk. That is why it beats ROAM on modern GPUs (plan Section 9).
+- Rebuilding everything after a **Height Scale** change takes ~27 ms (1025) / ~115 ms (2049), only when the slider moves.
+
 Culling (Role C) will cut the draw calls further; the benchmark (Role C) will give the final numbers
 for the report.
 

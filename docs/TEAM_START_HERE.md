@@ -92,7 +92,11 @@ glBindVertexArray(m_vao);      glBindBuffer(GL_ARRAY_BUFFER, m_vbo);
 glBufferData(GL_ARRAY_BUFFER, MAX_VERTICES * sizeof(TerrainVertex), nullptr, GL_DYNAMIC_DRAW);
 setTerrainVertexLayout();
 ```
-then in `draw()` fill a `std::vector<TerrainVertex>` with 3 vertices per leaf triangle, upload with
+**Note:** `build()` is called again whenever the **Height Scale** slider moves (main.cpp rebuilds the
+grid and both LOD methods). Delete or reuse the VAO/VBO and other data from the previous call;
+`ChunkedLOD::releaseGpuBuffers` shows how. `TerrainGrid::build` is also called again, with the same heightmap.
+
+Then in `draw()` fill a `std::vector<TerrainVertex>` with 3 vertices per leaf triangle, upload with
 `glBufferSubData`, and call `glDrawArrays(GL_TRIANGLES, 0, count)`. Positions are world positions:
 use `grid.position(x, z)` and `grid.normal(x, z)`.
 

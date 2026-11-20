@@ -28,7 +28,9 @@ class TerrainLOD {
 public:
     virtual ~TerrainLOD() = default;
 
-    // ONCE at start-up: build whatever this method needs (GPU buffers, variance trees, ...).
+    // At start-up: build whatever this method needs (GPU buffers, variance trees, ...).
+    // Called AGAIN when the "Height Scale" slider changes, so free or reuse what the
+    // previous call created (see ChunkedLOD::releaseGpuBuffers).
     virtual void build(const TerrainGrid& grid) = 0;
 
     // EVERY frame: decide how detailed each visible chunk should be.

@@ -109,16 +109,20 @@ static void stopImGui() {
     ImGui::DestroyContext();
 }
 
-// Loads the real heightmap if it exists, otherwise the built-in test terrain,
-// then builds the grid (heights, normals, chunks).
-static void buildTerrain(TerrainGrid& grid, const Settings& settings) {
-    Heightmap heightmap;
+// Loads the real heightmap if it exists, otherwise makes the built-in test terrain.
+static void loadHeightmap(Heightmap& heightmap) {
     if (!heightmap.load(projectPath(HEIGHTMAP_FILE)))
         heightmap.makeTestTerrain(TEST_TERRAIN_SIZE);
+}
 
-    grid.build(heightmap, settings.heightScale);
-    std::printf("Terrain: %d x %d vertices, %d x %d chunks\n",
-                grid.size(), grid.size(), grid.chunksPerSide(), grid.chunksPerSide());
+// Called when the "Height Scale" slider moves.  The heights are baked into the
+// grid and into the GPU vertex buffers, so all three must be built again.
+// (The heightmap itself, values 0..1, doesn't change; it stays in memory.)
+static void rebuildTerrain(const Heightmap& heightmap, const Settings& settings,
+                           TerrainGrid& grid, ChunkedLOD& chunked, RoamLOD& roam) {
+    grid.build(heightmap, settings.heightScale);   // [B]
+    chunked.build(grid);                           // [A]
+    roam.build(grid);                              // [B]
 }
 
 // Puts the camera above the near edge of the terrain, looking across it.
@@ -218,8 +222,13 @@ int main() {
     Settings settings;
     Stats    stats;
 
+    Heightmap heightmap;                                // [B]
+    loadHeightmap(heightmap);
     TerrainGrid grid;                                   // [B]
-    buildTerrain(grid, settings);
+    grid.build(heightmap, settings.heightScale);
+    std::printf("Terrain: %d x %d vertices, %d x %d chunks\n",
+                grid.size(), grid.size(), grid.chunksPerSide(), grid.chunksPerSide());
+    float builtHeightScale = settings.heightScale;      // the height scale the buffers were built with
 
     Camera camera;                                      // [A]
     placeCameraOverTerrain(camera, grid, settings);
@@ -262,6 +271,12 @@ int main() {
             camera.update(window, dt);
         if (!settings.freezeCulling)                                                  // [C]
             cullCamera = camera;
+
+        //    Height Scale slider moved since the buffers were built?                 [A]/[B]
+        if (settings.heightScale != builtHeightScale) {
+            rebuildTerrain(heightmap, settings, grid, chunked, roam);
+            builtHeightScale = settings.heightScale;
+        }
 
         // 2. Start with every chunk, then remove what can't be seen.
         std::vector<Chunk*> visible = grid.allChunks();                               // [B]
