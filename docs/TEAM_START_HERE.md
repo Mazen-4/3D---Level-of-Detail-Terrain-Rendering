@@ -68,8 +68,10 @@ Phase 3 is **done**: skirts hide the cracks between LODs, and the shader has hei
 colours, a sun, fog, and the **LOD colours** debug view.
 Phase 4 is **done**: [ARCHITECTURE.md](ARCHITECTURE.md), [ROLE_A_EXPLAINED.md](ROLE_A_EXPLAINED.md)
 and [CONTRIBUTING.md](CONTRIBUTING.md).
-Next for A: review B's and C's pull requests, fix bugs found in benchmarks, and write the report
-sections "Pipeline, Chunked LOD, rendering".
+Also done: the **Height Scale** slider rebuilds the terrain, and a draft of A's report section is in
+[report/ROLE_A_SECTION_DRAFT.md](report/ROLE_A_SECTION_DRAFT.md).
+Next for A: review B's and C's pull requests, fix bugs found in benchmarks, and finish the report
+section with C's final numbers and screenshots on the real heightmap.
 
 **What you can use now:**
 
@@ -132,3 +134,4 @@ code style are in **[CONTRIBUTING.md](CONTRIBUTING.md)**.
 | [ARCHITECTURE.md](ARCHITECTURE.md) | You want to understand how the whole program fits together |
 | [CONTRIBUTING.md](CONTRIBUTING.md) | You are about to commit, open a PR, or review one |
 | [ROLE_A_EXPLAINED.md](ROLE_A_EXPLAINED.md) | You need to explain the engine, Chunked LOD or shading (everyone must!) |
+| [report/ROLE_A_SECTION_DRAFT.md](report/ROLE_A_SECTION_DRAFT.md) | Role A's report section, ready to paste (needs C's final numbers) |
