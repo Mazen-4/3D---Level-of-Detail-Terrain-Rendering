@@ -64,7 +64,9 @@ and brute-force drawing (every chunk at LOD 3 = ~2.1 M triangles).
 Phase 2 is **done**: each chunk picks its LOD from its distance to the camera; the
 **Enable LOD**, **LOD Distance** and **Max Triangles** controls work. `chunk->lod` is now
 set every frame, so Role C can show it in debug views.
-Next: skirts + shading + LOD colours (Phase 3).
+Phase 3 is **done**: skirts hide the cracks between LODs, and the shader has height/slope
+colours, a sun, fog, and the **LOD colours** debug view.
+Next: explanation docs (Phase 4).
 
 **What you can use now:**
 
@@ -74,8 +76,11 @@ Next: skirts + shading + LOD colours (Phase 3).
 | A shader | `Shader s; s.load(projectPath("shaders/x.vert"), projectPath("shaders/x.frag")); s.use(); s.setMat4("uViewProj", ...)` |
 | Terrain vertex format | `TerrainVertex` + `setTerrainVertexLayout()` in `src/lod/TerrainVertex.h` |
 
-**Terrain shader contract** (`shaders/terrain.vert/.frag`). `main.cpp` sets these before calling `lod->draw(...)`, so **ROAM gets them for free**:
-`uViewProj` (mat4), `uHeightScale` (float), `uSunDirection` (vec3). The shader is already active (`use()`d) when `draw()` is called.
+**Terrain shader contract** (`shaders/terrain.vert/.frag`). `main.cpp` sets all of these before calling `lod->draw(...)`, so **ROAM gets them for free**:
+`uViewProj`, `uHeightScale`, `uSunDirection`, `uCameraPos`, `uFogColour`, `uFogStart`, `uFogEnd`, `uDebugMode`, and `uLod` (default 3).
+The shader is already active (`use()`d) when `draw()` is called.
+The only one a LOD method sets itself is **`uLod`**, which picks the colour in the "LOD colours" view.
+ChunkedLOD sets it per chunk. ROAM can leave it at the default or call `shader.setInt("uLod", ...)` with any 0–3 value it likes.
 
 **How ROAM draws (for B):** make one VAO + one VBO in `build()`:
 ```cpp

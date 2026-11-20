@@ -55,6 +55,8 @@ static const int   TEST_TERRAIN_SIZE = 1025;   // used when no heightmap file ca
 static const glm::vec3 SKY_COLOUR(0.55f, 0.70f, 0.90f);
 static const glm::vec3 SUN_DIRECTION = glm::normalize(glm::vec3(0.5f, 0.8f, 0.3f));  // towards the sun
 static const double FPS_UPDATE_SECONDS = 0.5;  // the FPS number is averaged over this time
+static const float FOG_START_FRACTION = 0.6f;  // fog starts at 0.6 x terrain width from the camera
+static const float FOG_END_FRACTION   = 1.6f;  // and is complete at 1.6 x terrain width
 
 // =============================================================================
 //  Start-up helpers
@@ -172,12 +174,20 @@ static void beginFrame(GLFWwindow* window, const Settings& settings, Camera& cam
     glPolygonMode(GL_FRONT_AND_BACK, settings.wireframe ? GL_LINE : GL_FILL);
 }
 
-// Uploads the values the terrain shader needs this frame.
-static void setTerrainUniforms(const Shader& shader, const Camera& camera, const Settings& settings) {
+// Uploads the values the terrain shader needs this frame (see shaders/terrain.frag).
+// (uLod is set per chunk by ChunkedLOD::draw.)
+static void setTerrainUniforms(const Shader& shader, const Camera& camera,
+                               const Settings& settings, float terrainSize) {
     shader.use();
     shader.setMat4("uViewProj", camera.viewProjection());
     shader.setFloat("uHeightScale", settings.heightScale);
     shader.setVec3("uSunDirection", SUN_DIRECTION);
+    shader.setVec3("uCameraPos", camera.position);
+    shader.setVec3("uFogColour", SKY_COLOUR);
+    shader.setFloat("uFogStart", FOG_START_FRACTION * terrainSize);
+    shader.setFloat("uFogEnd", FOG_END_FRACTION * terrainSize);
+    shader.setInt("uDebugMode", settings.lodColours ? 1 : 0);
+    shader.setInt("uLod", ChunkedLOD::FINEST_LOD);   // default; ChunkedLOD sets it per chunk
 }
 
 // Starts a new ImGui frame.  Done early in the frame so we know, before moving
@@ -277,7 +287,7 @@ int main() {
         lod->update(camera, settings, visible);
         stats.lodUpdateMs = (float)((glfwGetTime() - updateStart) * 1000.0);
 
-        setTerrainUniforms(terrainShader, camera, settings);
+        setTerrainUniforms(terrainShader, camera, settings, (float)grid.size());
         lod->draw(terrainShader, visible, stats);
 
         // 4. Ask the GPU which chunks were hidden (answers are read next frame).     [C]
