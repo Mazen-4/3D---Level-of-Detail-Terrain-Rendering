@@ -1,0 +1,21 @@
+# Build output (never commit these)
+build/
+build-*/
+out/
+cmake-build-*/
+.vs/
+*.user
+
+# Editor settings that are personal to each laptop
+.vscode/
+.idea/
+
+# Large heightmaps (> 20 MB) are shared by link, not through Git.
+# Put them in assets/heightmaps/large/  (see assets/heightmaps/README.md)
+assets/heightmaps/large/
+
+# Benchmark output (CSV files and generated charts)
+bench_results/
+
+# Python cache
+__pycache__/
