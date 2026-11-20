@@ -61,7 +61,17 @@ Compared to the plan's Section 3 listing:
 ### Role A: Engine & Chunked LOD (Mazen)
 Phase 1 is **done**: `Camera`, `Shader`, terrain shaders, the real frame loop in `main.cpp`,
 and brute-force drawing (every chunk at LOD 3 = ~2.1 M triangles).
-Next: Chunked LOD (Phase 2), then skirts + shading (Phase 3).
+Phase 2 is **done**: each chunk picks its LOD from its distance to the camera; the
+**Enable LOD**, **LOD Distance** and **Max Triangles** controls work. `chunk->lod` is now
+set every frame, so Role C can show it in debug views.
+Phase 3 is **done**: skirts hide the cracks between LODs, and the shader has height/slope
+colours, a sun, fog, and the **LOD colours** debug view.
+Phase 4 is **done**: [ARCHITECTURE.md](ARCHITECTURE.md), [ROLE_A_EXPLAINED.md](ROLE_A_EXPLAINED.md)
+and [CONTRIBUTING.md](CONTRIBUTING.md).
+Also done: the **Height Scale** slider rebuilds the terrain, and a draft of A's report section is in
+[report/ROLE_A_SECTION_DRAFT.md](report/ROLE_A_SECTION_DRAFT.md).
+Next for A: review B's and C's pull requests, fix bugs found in benchmarks, and finish the report
+section with C's final numbers and screenshots on the real heightmap.
 
 **What you can use now:**
 
@@ -71,8 +81,11 @@ Next: Chunked LOD (Phase 2), then skirts + shading (Phase 3).
 | A shader | `Shader s; s.load(projectPath("shaders/x.vert"), projectPath("shaders/x.frag")); s.use(); s.setMat4("uViewProj", ...)` |
 | Terrain vertex format | `TerrainVertex` + `setTerrainVertexLayout()` in `src/lod/TerrainVertex.h` |
 
-**Terrain shader contract** (`shaders/terrain.vert/.frag`). `main.cpp` sets these before calling `lod->draw(...)`, so **ROAM gets them for free**:
-`uViewProj` (mat4), `uHeightScale` (float), `uSunDirection` (vec3). The shader is already active (`use()`d) when `draw()` is called.
+**Terrain shader contract** (`shaders/terrain.vert/.frag`). `main.cpp` sets all of these before calling `lod->draw(...)`, so **ROAM gets them for free**:
+`uViewProj`, `uHeightScale`, `uSunDirection`, `uCameraPos`, `uFogColour`, `uFogStart`, `uFogEnd`, `uDebugMode`, and `uLod` (default 3).
+The shader is already active (`use()`d) when `draw()` is called.
+The only one a LOD method sets itself is **`uLod`**, which picks the colour in the "LOD colours" view.
+ChunkedLOD sets it per chunk. ROAM can leave it at the default or call `shader.setInt("uLod", ...)` with any 0–3 value it likes.
 
 **How ROAM draws (for B):** make one VAO + one VBO in `build()`:
 ```cpp
@@ -81,7 +94,11 @@ glBindVertexArray(m_vao);      glBindBuffer(GL_ARRAY_BUFFER, m_vbo);
 glBufferData(GL_ARRAY_BUFFER, MAX_VERTICES * sizeof(TerrainVertex), nullptr, GL_DYNAMIC_DRAW);
 setTerrainVertexLayout();
 ```
-then in `draw()` fill a `std::vector<TerrainVertex>` with 3 vertices per leaf triangle, upload with
+**Note:** `build()` is called again whenever the **Height Scale** slider moves (main.cpp rebuilds the
+grid and both LOD methods). Delete or reuse the VAO/VBO and other data from the previous call;
+`ChunkedLOD::releaseGpuBuffers` shows how. `TerrainGrid::build` is also called again, with the same heightmap.
+
+Then in `draw()` fill a `std::vector<TerrainVertex>` with 3 vertices per leaf triangle, upload with
 `glBufferSubData`, and call `glDrawArrays(GL_TRIANGLES, 0, count)`. Positions are world positions:
 use `grid.position(x, z)` and `grid.normal(x, z)`.
 
@@ -103,19 +120,18 @@ Start with these. None of them need Phase 1:
    For `lines.vert/.frag` you can copy the structure of `shaders/terrain.vert` (one `uViewProj` uniform) and output a `uColour`.
    Restore any GL state you change (colour mask, depth mask, polygon mode).
 
-## 4. Git workflow (plan Section 6)
+## 4. Git workflow and code style
 
-1. `git checkout main && git pull`
-2. `git checkout -b b/heightmap` (your role letter / feature name)
-3. Commit small steps. `main` must **always build and run**.
-4. Push and open a **pull request** to `main`. It is reviewed by one other member, rotating A→B→C→A.
-5. In the PR description, say **what changed** and **how to see it in the app**.
+Short version: branch `<role>/<feature>` from `main`, small commits, pull request into `main`,
+reviewed by the next person in the rotation A→B→C→A. The full steps, the PR checklist and the
+code style are in **[CONTRIBUTING.md](CONTRIBUTING.md)**.
 
-Don't commit `build/` or heightmaps over 20 MB (put those in `assets/heightmaps/large/`, which Git ignores, and share a link).
+## 5. All the docs
 
-## 5. Code style (so all of us can explain every line)
-
-- One idea per file. Short functions (< ~40 lines) named after what they do.
-- A plain-English comment above every function; point to the plan's figures ("see Fig. 5").
-- Named constants instead of magic numbers: `CHUNK_QUADS = 128`, `SKIRT_DEPTH = 20.0f`.
-- No templates, no inheritance (except `TerrainLOD`), no multithreading, no clever tricks.
+| Doc | Read it when |
+|---|---|
+| [TEAM_START_HERE.md](TEAM_START_HERE.md) (this page) | You are new, or want to know what to do next |
+| [ARCHITECTURE.md](ARCHITECTURE.md) | You want to understand how the whole program fits together |
+| [CONTRIBUTING.md](CONTRIBUTING.md) | You are about to commit, open a PR, or review one |
+| [ROLE_A_EXPLAINED.md](ROLE_A_EXPLAINED.md) | You need to explain the engine, Chunked LOD or shading (everyone must!) |
+| [report/ROLE_A_SECTION_DRAFT.md](report/ROLE_A_SECTION_DRAFT.md) | Role A's report section, ready to paste (needs C's final numbers) |

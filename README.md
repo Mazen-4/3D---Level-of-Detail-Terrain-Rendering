@@ -9,7 +9,13 @@ smoothly by drawing detail only where the viewer can see it.
 - **Debug views** and a **benchmark mode**
 
 The full design is in [`LOD Terrain - Project Plan & Team Roles.pdf`](LOD%20Terrain%20-%20Project%20Plan%20%26%20Team%20Roles.pdf).
-**New to the code? Read [`docs/TEAM_START_HERE.md`](docs/TEAM_START_HERE.md) first.**
+
+| Doc | What it's for |
+|---|---|
+| **[docs/TEAM_START_HERE.md](docs/TEAM_START_HERE.md)** | **Read first.** How the code is split and what each role does next |
+| [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | How the whole program fits together: start-up, the frame loop, shared types, rules |
+| [docs/CONTRIBUTING.md](docs/CONTRIBUTING.md) | Git workflow, pull requests, review checklist, code style |
+| [docs/ROLE_A_EXPLAINED.md](docs/ROLE_A_EXPLAINED.md) | Engine, Chunked LOD and shading explained, with links to the code |
 
 ---
 
@@ -100,7 +106,8 @@ Any GPU with **OpenGL 3.3** works (all NVIDIA, AMD and Intel GPUs from roughly 2
 |---|---|---|
 | 0 | Libraries, build, shared headers, stubs for every role | ✅ done |
 | 1 | Window, camera, shader, real frame loop, brute-force terrain (2.1 M triangles, 64 draw calls) | ✅ done |
-| 2 | Chunked LOD: 4 shared index buffers, distance LOD, budget | ⏳ (A) |
-| 3 | Skirts, shading, LOD colours, wireframe | ⏳ (A) |
+| 2 | Chunked LOD: 4 shared index buffers, distance LOD, budget (default view: 2.1 M → ~0.6 M triangles) | ✅ done |
+| 3 | Skirts (no cracks), height/slope colours, sun light, fog, LOD colours, wireframe | ✅ done |
+| 4 | Explanation docs (architecture, Role A explained, contributing) | ✅ done |
 | n/a | Heightmap loading, normals, chunk boxes, ROAM | ⏳ (B) |
 | n/a | Frustum and occlusion culling, full panel, debug draw, benchmark | ⏳ (C) |

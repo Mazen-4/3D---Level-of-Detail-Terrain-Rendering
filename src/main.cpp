@@ -55,6 +55,8 @@ static const int   TEST_TERRAIN_SIZE = 1025;   // used when no heightmap file ca
 static const glm::vec3 SKY_COLOUR(0.55f, 0.70f, 0.90f);
 static const glm::vec3 SUN_DIRECTION = glm::normalize(glm::vec3(0.5f, 0.8f, 0.3f));  // towards the sun
 static const double FPS_UPDATE_SECONDS = 0.5;  // the FPS number is averaged over this time
+static const float FOG_START_FRACTION = 0.6f;  // fog starts at 0.6 x terrain width from the camera
+static const float FOG_END_FRACTION   = 1.6f;  // and is complete at 1.6 x terrain width
 
 // =============================================================================
 //  Start-up helpers
@@ -107,16 +109,20 @@ static void stopImGui() {
     ImGui::DestroyContext();
 }
 
-// Loads the real heightmap if it exists, otherwise the built-in test terrain,
-// then builds the grid (heights, normals, chunks).
-static void buildTerrain(TerrainGrid& grid, const Settings& settings) {
-    Heightmap heightmap;
+// Loads the real heightmap if it exists, otherwise makes the built-in test terrain.
+static void loadHeightmap(Heightmap& heightmap) {
     if (!heightmap.load(projectPath(HEIGHTMAP_FILE)))
         heightmap.makeTestTerrain(TEST_TERRAIN_SIZE);
+}
 
-    grid.build(heightmap, settings.heightScale);
-    std::printf("Terrain: %d x %d vertices, %d x %d chunks\n",
-                grid.size(), grid.size(), grid.chunksPerSide(), grid.chunksPerSide());
+// Called when the "Height Scale" slider moves.  The heights are baked into the
+// grid and into the GPU vertex buffers, so all three must be built again.
+// (The heightmap itself, values 0..1, doesn't change; it stays in memory.)
+static void rebuildTerrain(const Heightmap& heightmap, const Settings& settings,
+                           TerrainGrid& grid, ChunkedLOD& chunked, RoamLOD& roam) {
+    grid.build(heightmap, settings.heightScale);   // [B]
+    chunked.build(grid);                           // [A]
+    roam.build(grid);                              // [B]
 }
 
 // Puts the camera above the near edge of the terrain, looking across it.
@@ -172,12 +178,20 @@ static void beginFrame(GLFWwindow* window, const Settings& settings, Camera& cam
     glPolygonMode(GL_FRONT_AND_BACK, settings.wireframe ? GL_LINE : GL_FILL);
 }
 
-// Uploads the values the terrain shader needs this frame.
-static void setTerrainUniforms(const Shader& shader, const Camera& camera, const Settings& settings) {
+// Uploads the values the terrain shader needs this frame (see shaders/terrain.frag).
+// (uLod is set per chunk by ChunkedLOD::draw.)
+static void setTerrainUniforms(const Shader& shader, const Camera& camera,
+                               const Settings& settings, float terrainSize) {
     shader.use();
     shader.setMat4("uViewProj", camera.viewProjection());
     shader.setFloat("uHeightScale", settings.heightScale);
     shader.setVec3("uSunDirection", SUN_DIRECTION);
+    shader.setVec3("uCameraPos", camera.position);
+    shader.setVec3("uFogColour", SKY_COLOUR);
+    shader.setFloat("uFogStart", FOG_START_FRACTION * terrainSize);
+    shader.setFloat("uFogEnd", FOG_END_FRACTION * terrainSize);
+    shader.setInt("uDebugMode", settings.lodColours ? 1 : 0);
+    shader.setInt("uLod", ChunkedLOD::FINEST_LOD);   // default; ChunkedLOD sets it per chunk
 }
 
 // Starts a new ImGui frame.  Done early in the frame so we know, before moving
@@ -208,8 +222,13 @@ int main() {
     Settings settings;
     Stats    stats;
 
+    Heightmap heightmap;                                // [B]
+    loadHeightmap(heightmap);
     TerrainGrid grid;                                   // [B]
-    buildTerrain(grid, settings);
+    grid.build(heightmap, settings.heightScale);
+    std::printf("Terrain: %d x %d vertices, %d x %d chunks\n",
+                grid.size(), grid.size(), grid.chunksPerSide(), grid.chunksPerSide());
+    float builtHeightScale = settings.heightScale;      // the height scale the buffers were built with
 
     Camera camera;                                      // [A]
     placeCameraOverTerrain(camera, grid, settings);
@@ -253,6 +272,12 @@ int main() {
         if (!settings.freezeCulling)                                                  // [C]
             cullCamera = camera;
 
+        //    Height Scale slider moved since the buffers were built?                 [A]/[B]
+        if (settings.heightScale != builtHeightScale) {
+            rebuildTerrain(heightmap, settings, grid, chunked, roam);
+            builtHeightScale = settings.heightScale;
+        }
+
         // 2. Start with every chunk, then remove what can't be seen.
         std::vector<Chunk*> visible = grid.allChunks();                               // [B]
         if (settings.frustumCulling) {                                                // [C]
@@ -277,7 +302,7 @@ int main() {
         lod->update(camera, settings, visible);
         stats.lodUpdateMs = (float)((glfwGetTime() - updateStart) * 1000.0);
 
-        setTerrainUniforms(terrainShader, camera, settings);
+        setTerrainUniforms(terrainShader, camera, settings, (float)grid.size());
         lod->draw(terrainShader, visible, stats);
 
         // 4. Ask the GPU which chunks were hidden (answers are read next frame).     [C]
